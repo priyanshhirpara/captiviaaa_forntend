@@ -73,7 +73,7 @@ const BrandSection = () => (
   <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
     <div className="absolute inset-0 bg-gradient-to-br from-[#E94560]/20 to-[#533483]/20 animate-pulse"></div>
     <FloatingShapes />
-    
+
     <div className="relative z-10 flex flex-col justify-center items-center text-white p-12">
       <div className="text-center max-w-md">
         <h1 className={`text-5xl font-bold mb-6 bg-gradient-to-r ${GRADIENT_COLORS.primary} bg-clip-text text-transparent`}>
@@ -109,13 +109,13 @@ const Divider = () => (
   </div>
 );
 
-const InputField = ({ 
-  type, 
-  placeholder, 
-  value, 
-  onChange, 
+const InputField = ({
+  type,
+  placeholder,
+  value,
+  onChange,
   onKeyPress,
-  icon 
+  icon
 }: {
   type: string;
   placeholder: string;
@@ -198,7 +198,7 @@ const Login = () => {
     setIsLoading(true);
 
     const validation = validateInput(formData.username, formData.password);
-    
+
     if (!validation.isValid) {
       setError(validation.error!);
       setIsLoading(false);
@@ -207,7 +207,7 @@ const Login = () => {
 
     const response = await LoginFunction(validation.loginData!, setError);
     setIsLoading(false);
-    
+
     if (response) {
       navigate('/home');
     }
@@ -310,14 +310,6 @@ const Login = () => {
                 className="text-[#E94560] hover:text-[#E94560]/80 font-semibold transition-colors duration-200"
               >
                 Sign up
-              </Link>
-            </p>
-            <p className="text-white/60 text-sm mt-2">
-              <Link
-                to="/home"
-                className="text-[#00ADB5] hover:text-[#00ADB5]/80 font-semibold transition-colors duration-200"
-              >
-                Skip to Homepage (Demo)
               </Link>
             </p>
           </div>
