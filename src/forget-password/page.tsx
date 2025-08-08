@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FaArrowLeft, FaEnvelope, FaLock, FaCheck, FaShieldAlt } from 'react-icons/fa';
-import { useForgetPassword } from './forget-passwordUseset';
+import { useForgotPassword } from '../hooks/useForgotPassword';
 
 const ForgetPassword = () => {
     const {
@@ -14,7 +14,7 @@ const ForgetPassword = () => {
         isLoading,
         handleSendOtp,
         resetState
-    } = useForgetPassword();
+    } = useForgotPassword();
 
     const [currentStep, setCurrentStep] = useState(1);
     const [iconAnimation, setIconAnimation] = useState(false);

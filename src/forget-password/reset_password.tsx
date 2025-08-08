@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useForgetPassword } from "./forget-passwordUseset";
+import { useForgotPassword } from "../hooks/useForgotPassword";
 import { FaEye, FaEyeSlash, FaLock, FaCheck, FaTimes } from "react-icons/fa";
 
 const ResetPassword = () => {
@@ -14,7 +14,7 @@ const ResetPassword = () => {
         successMessage,
         handleResetPassword,
         isLoading,
-    } = useForgetPassword();
+    } = useForgotPassword();
 
     // Local state for UI enhancements
     const [showNewPassword, setShowNewPassword] = useState(false);

@@ -14,9 +14,10 @@ import {
   FaComments,
   FaImage
 } from "react-icons/fa";
-import { signupAPI } from "./signupUseset";
+import { useAuth } from "../hooks/useAuth";
 
 const SignupPage = () => {
+  const { signup, getUsernameSuggestions, createPersonalInfo } = useAuth();
   const [formData, setFormData] = useState({
     contact: "",
     password: "",
@@ -74,7 +75,7 @@ const SignupPage = () => {
     if (name === "username") {
       console.log("Fetching username suggestions for:", value);
       try {
-        const response = await signupAPI.getUsernameSuggestions(value)
+        const response = await getUsernameSuggestions(value)
         console.log("Username suggestions:", response);
         if (response && Array.isArray(response)) {
           setUsernameSuggestions(response);
@@ -146,17 +147,21 @@ const SignupPage = () => {
         ? { email: formData.contact }
         : { mobile_number: formData.contact }),
     };
-    const signupResponse = await signupAPI.signup(requestBody);
-    console.log("Signup successful", signupResponse);
-    Cookies.set("access_token", (signupResponse as any).token, { expires: 3 });
-
-    const personalInfoResponse = await signupAPI.createPersonalInfo({
-      profile_picture: "/images/default.jpg",
-      bio: "",
-      website: "",
-    }, (signupResponse as any).token);
-    console.log("Personal information created", personalInfoResponse);
-    navigate("/settings");
+    const signupSuccess = await signup(requestBody);
+    if (signupSuccess) {
+      console.log("Signup successful");
+      
+      const personalInfoSuccess = await createPersonalInfo({
+        profile_picture: "/images/default.jpg",
+        bio: "",
+        website: "",
+      });
+      
+      if (personalInfoSuccess) {
+        console.log("Personal information created");
+        navigate("/settings");
+      }
+    }
   };
 
   const getPasswordStrengthColor = () => {

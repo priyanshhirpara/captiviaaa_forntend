@@ -4,6 +4,7 @@ import FacebookLogin from './login/facebook';
 import ResetPassword from './forget-password/reset_password';
 import ForgetPassword from './forget-password/page';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import Homepage from './homepage/page';
 
 function App() {
 
@@ -16,6 +17,7 @@ function App() {
           <Route path='/facebook-login' element={<FacebookLogin />} />
           <Route path='/forget-password' element={<ForgetPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
+          <Route path="/home" element={<Homepage />} />
         </Routes>
       </Router>
     </>

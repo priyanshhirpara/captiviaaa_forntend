@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaFacebook, FaEye, FaEyeSlash } from "react-icons/fa";
-import LoginFunction from './loginUseset';
+import { useAuth } from '../hooks/useAuth';
 
 // Constants
 const VALIDATION_PATTERNS = {
@@ -179,6 +179,7 @@ const AppDownloadSection = () => (
 );
 
 const Login = () => {
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -205,10 +206,10 @@ const Login = () => {
       return;
     }
 
-    const response = await LoginFunction(validation.loginData!, setError);
+    const loginSuccess = await login(validation.loginData!);
     setIsLoading(false);
 
-    if (response) {
+    if (loginSuccess) {
       navigate('/home');
     }
   }, [formData.username, formData.password, navigate]);
