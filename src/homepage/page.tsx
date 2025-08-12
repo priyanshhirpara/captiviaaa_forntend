@@ -13,7 +13,7 @@ import {
 import { Home, Compass, Video, BookOpen, Pencil } from 'lucide-react';
 
 const ROUTES = {
-  HOME: '/homepage',
+  HOME: '/home',
   EXPLORE: '/explore',
   REELS: '/reels',
   PROFILE: '/profile',

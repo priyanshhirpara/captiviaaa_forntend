@@ -1,9 +1,11 @@
 import React, { memo } from 'react';
 import PostHeader from './post_header';
 import PostActions from './post_actions';
+import useFavorites from '../hooks/useFavorites';
+import type { Post } from '../types/posttypes';
 
 interface PostProps {
-    post: any;
+    post: Post;
     isMenuActive: boolean;
     isLiked: boolean;
     isSaved: boolean;
@@ -48,7 +50,6 @@ const Post: React.FC<PostProps> = memo(({
     onSave,
     onCommentToggle,
     onMenuToggle,
-    onCollaborator,
     onShowLikes,
     onUsernameClick,
     likesCount,
@@ -57,12 +58,14 @@ const Post: React.FC<PostProps> = memo(({
     closeMenu,
     onGoToPost,
 }) => {
+    const { isFavorite } = useFavorites();
+
     const handleLikeClick = () => {
-        onLike(post.id);
+        onLike(post.id.toString());
     };
 
     const handleSaveClick = () => {
-        onSave(post.id);
+        onSave(post.id.toString());
     };
 
     const handleCommentClick = () => {
@@ -70,15 +73,15 @@ const Post: React.FC<PostProps> = memo(({
     };
 
     const handleMenuClick = () => {
-        onMenuToggle(post.id);
+        onMenuToggle(post.id.toString());
     };
 
     const handleShowLikesClick = () => {
-        onShowLikes(post.id);
+        onShowLikes(post.id.toString());
     };
 
     const handleGoToPostClick = () => {
-        onGoToPost(post.id);
+        onGoToPost(post.id.toString());
     };
 
     const postLikes = likesData[post.id] || [];
@@ -89,14 +92,14 @@ const Post: React.FC<PostProps> = memo(({
             {/* Post Header */}
             <PostHeader
                 username={post.username}
-                profilePicture={post.user_profile_picture}
-                location={post.location}
+                profilePicture={post.user_profile_picture || ''}
+                location={post.location || ''}
                 isMenuActive={isMenuActive}
                 onMenuToggle={handleMenuClick}
                 setShowReportModal={setShowReportModal}
                 post={post}
                 closeMenu={closeMenu}
-                isFavorite={false} // This should be passed from parent
+                isFavorite={isFavorite(post.id.toString()   )}
                 onGoToPost={handleGoToPostClick}
             />
 

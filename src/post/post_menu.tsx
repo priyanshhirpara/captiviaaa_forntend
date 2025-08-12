@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
-import { useFavorites, useFollowUnfollow } from "../hooks";
+import useFavorites from "../hooks/useFavorites";
+import { useFollowUnfollow } from "../hooks/useFollowUnfollow";
 
 const PostMenu = ({ setShowReportModal, post, closeMenu, onGoToPost }: { setShowReportModal: (show: boolean) => void, post: any, closeMenu: () => void, onGoToPost: (postId: string) => void }) => {
     const { toggleFavorite, isFavorite } = useFavorites();

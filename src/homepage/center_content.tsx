@@ -1,225 +1,166 @@
-import React, { useState, useEffect } from "react";
-import Cookies from "js-cookie";
+import React, { useState } from "react";
 import StorySection from "../story/story_section";
 import Post from "../post/post";
 import StoryModal from "../story/story_model";
 import CommentModal from "../comment/comment_model";
 import LikesModal from "../like/like_mode";
 import ReportModal from "../report/report_model";
-import { usePosts, useComments, useAuth } from "../hooks";
+import { usePosts } from "../hooks/usePosts";
+import { useComments } from "../hooks/useComments";
+import { useAuth } from "../hooks/useAuth";
+import { useStory } from "../hooks/useStory";
 
 const CenterContent = () => {
-    const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
-    // Restructured stories data to group by user
-    const [userStories, setUserStories] = useState([]);
-    const [storyModalOpen, setStoryModalOpen] = useState(false);
-    const [currentUserStoryIndex, setCurrentUserStoryIndex] = useState(0);
-    const [activeMenuPostId, setActiveMenuPostId] = useState(null);
-    const [showLikesModal, setShowLikesModal] = useState(null);
-    const [showReportModal, setShowReportModal] = useState(false);
+  const [storyModalOpen, setStoryModalOpen] = useState(false);
+  const [currentUserStoryIndex, setCurrentUserStoryIndex] = useState(0);
+  const [activeMenuPostId, setActiveMenuPostId] = useState<string | null>(null);
+  const [showLikesModal, setShowLikesModal] = useState<string | null>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
 
-    const { currentUser } = useAuth();
-    const {
-        posts,
-        likedPosts,
-        savedPosts,
-        likesData,
-        handleLike,
-        handleSave,
-        fetchLikesData
-    } = usePosts();
-    const {
-        commentText,
-        activeCommentPostId,
-        setActiveCommentPostId,
-        handleCommentChange,
-        handleCommentSubmit
-    } = useComments(currentUser || undefined);
+  const { currentUser } = useAuth();
+  const { 
+    posts,
+    likedPosts,
+    savedPosts,
+    likesData,
+    hasMore,
+    isLoading,
+    handleLike,
+    handleSave,
+    handleCollaborator,
+    fetchMorePosts
+   } = usePosts();
+  const {
+    commentText,
+    activeCommentPostId,
+    setActiveCommentPostId,
+    handleCommentChange,
+    handleCommentSubmit,
+  } = useComments(currentUser || undefined);
+  const { userStories } = useStory();
 
-    // Fetch stories from API
-    useEffect(() => {
-        const fetchStories = async () => {
-            try {
-                const accessToken = Cookies.get("access_token");
-                if (!accessToken) {
-                    console.error("No access token found. Please log in.");
-                    return;
-                }
+  const handleStoryClick = (userIndex: number) => {
+    setCurrentUserStoryIndex(userIndex);
+    setStoryModalOpen(true);
+  };
 
-                const response = await fetch(`${API_BASE_URL}/story-list/`, {
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                    },
-                });
+  const handleCloseStory = () => {
+    setStoryModalOpen(false);
+  };
 
-                if (!response.ok) {
-                    throw new Error("Failed to fetch stories");
-                }
+  const handleShowLikes = async (postId: string) => {
+    setShowLikesModal(postId);
+  };
 
-                const stories = await response.json();
-                
-                // Group stories by username
-                const storiesByUser: Record<string, any> = {};
-                stories.forEach((story: any) => {
-                    if (!storiesByUser[story.username]) {
-                        storiesByUser[story.username] = {
-                            username: story.username,
-                            profileImage: story.profileImage,
-                            latestTime: story.created_at,
-                            stories: []
-                        };
-                    }
-                    
-                    storiesByUser[story.username].stories.push({
-                        image: story.image,
-                        postedTime: story.created_at,
-                        caption: story.caption || "",
-                        id: story.id
-                    });
-                });
+  const handleNavigateToProfile = (username: string) => {
+    window.location.href = `/profile/${username}`;
+  };
 
-                // Convert to array and sort by latest story time
-                const groupedStories = Object.values(storiesByUser);
-                setUserStories(groupedStories as any);
-            } catch (error) {
-                console.error("Error fetching stories:", error);
-            }
-        };
+  const handleMenuToggle = (postId: string) => {
+    if (activeMenuPostId === postId) {
+      setActiveMenuPostId(null);
+    } else {
+      setActiveMenuPostId(postId);
+    }
+  };
 
-        fetchStories();
-    }, [API_BASE_URL]);
+  const handleReport = (reason: string) => {
+    // Handle the report logic here
+    console.log("Report submitted:", reason);
+    // You can add API call to submit the report
+  };
 
-    const handleStoryClick = (userIndex: number) => {
-        setCurrentUserStoryIndex(userIndex);
-        setStoryModalOpen(true);
-    };
+  const handleGoToPost = (postId: string) => {
+    setActiveCommentPostId(postId);
+  };
 
-    const handleCloseStory = () => {
-        setStoryModalOpen(false);
-    };
+  const handleLoadMore = () => {
+    if (hasMore && !isLoading) {
+      fetchMorePosts();
+    }
+  };
 
-    const handleShowLikes = async (postId: string) => {
-        if (!likesData[postId]) {
-            await fetchLikesData(postId);
-        }
-        setShowLikesModal(postId as any);
-    };
+  return (
+    <div className="flex flex-col items-center min-h-screen py-6 w-full bg-[#FDFAF6] text-black dark:bg-[#0f0e12] dark:text-white">
+      {/* Stories Section - now showing user thumbnails */}
+      <StorySection userStories={userStories} onStoryClick={handleStoryClick} />
 
-    const handleNavigateToProfile = (username: string) => {
-        window.location.href = `/profile/${username}`;
-    };
+      {/* Post Section */}
+      {posts.map((post, index) => (
+          <Post
+              key={index}
+              post={post}
+              isMenuActive={activeMenuPostId === post.id}
+              isLiked={likedPosts[post.id]}
+              isSaved={savedPosts[post.id]}
+              onLike={() => handleLike(post.id.toString())}
+              onSave={() => handleSave(post.id.toString())}
+              onCommentToggle={() => setActiveCommentPostId(post.id.toString())}
+                onMenuToggle={() => handleMenuToggle(post.id.toString())}
+              onCollaborator={() => handleCollaborator(post.id.toString())}
+              onShowLikes={() => handleShowLikes(post.id.toString())}
+              onUsernameClick={handleNavigateToProfile}
+              likesCount={likesData[post.id]?.length || 0}
+              likesData={likesData}
+              setShowReportModal={setShowReportModal}
+              closeMenu={() => setActiveMenuPostId(null)}
+              onGoToPost={handleGoToPost}
+          />
+      ))}
 
-    const handleCollaborator = async (postId: string) => {
-        const accessToken = Cookies.get("access_token");
-        if (!accessToken) {
-            console.error("No access token found. Please log in.");
-            return;
-        }
-
-        try {
-            const response = await fetch(`http://localhost:8080/post/collaborator/?post_id=${postId}`, {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error("Failed to add collaborator");
-            }
-
-            console.log("Collaborator added successfully");
-        } catch (error) {
-            console.error("Error adding collaborator:", error);
-        }
-    };
-
-    const handleMenuToggle = (postId: string) => {
-        if (activeMenuPostId === postId) {
-            setActiveMenuPostId(null);
-        } else {
-            setActiveMenuPostId(postId as any);
-        }
-    };
-
-    const handleReport = (reason: string) => {
-        // Handle the report logic here
-        console.log("Report submitted:", reason);
-        // You can add API call to submit the report
-    };
-
-    const handleGoToPost = (postId: string) => {
-        setActiveCommentPostId(postId);
-    };
-
-    return (
-        <div className="flex flex-col items-center min-h-screen py-6 w-full bg-[#FDFAF6] text-black dark:bg-[#0f0e12] dark:text-white">
-            {/* Stories Section - now showing user thumbnails */}
-            <StorySection userStories={userStories} onStoryClick={handleStoryClick}/>
-
-            {/* Post Section */}
-            {posts.map((post, index) => (
-                <Post
-                    key={index}
-                    post={post}
-                    isMenuActive={activeMenuPostId === post.id}
-                    isLiked={likedPosts[post.id]}
-                    isSaved={savedPosts[post.id]}
-                    onLike={() => handleLike(post.id)}
-                    onSave={() => handleSave(post.id)}
-                    onCommentToggle={() => setActiveCommentPostId(post.id)}
-                    onMenuToggle={() => handleMenuToggle(post.id)}
-                    onCollaborator={() => handleCollaborator(post.id)}
-                    onShowLikes={() => handleShowLikes(post.id)}
-                    onUsernameClick={handleNavigateToProfile}
-                    likesCount={likesData[post.id]?.length || 0}
-                    likesData={likesData}
-                    setShowReportModal={setShowReportModal}
-                    closeMenu={() => setActiveMenuPostId(null)}
-                    onGoToPost={handleGoToPost}
-                />
-            ))}
-
-            {/* Story Modal - now passing all users and stories */}
-            {storyModalOpen && (
-                <StoryModal 
-                    allStories={userStories}
-                    initialUserIndex={currentUserStoryIndex}
-                    onClose={handleCloseStory}
-                />
-            )}
-
-            {/* Comment Modal */}
-            {activeCommentPostId && (
-                <CommentModal
-                    post={posts.find(p => p.id === activeCommentPostId)}
-                    commentText={commentText}
-                    onCommentChange={handleCommentChange}
-                    onCommentSubmit={() => handleCommentSubmit(activeCommentPostId)}
-                    onClose={() => setActiveCommentPostId(null)}
-                    currentUser={currentUser}
-                />
-            )}
-
-            {/* Likes Modal */}
-            {showLikesModal && (
-                <LikesModal
-                    likesData={likesData}
-                    postId={showLikesModal}
-                    onClose={() => setShowLikesModal(null)}
-                    onNavigateToProfile={handleNavigateToProfile}
-                />
-            )}
-
-            {/* Report Modal */}
-            {showReportModal && (
-                <ReportModal
-                    onClose={() => setShowReportModal(false)}
-                    onReport={handleReport}
-                />
-            )}
+      {/* Load More Button */}
+      {hasMore && (
+        <div className="mt-6 mb-6">
+          <button
+            onClick={handleLoadMore}
+            disabled={isLoading}
+            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? "Loading..." : "Load More Posts"}
+          </button>
         </div>
-    );
+      )}
+
+      {/* Story Modal - now passing all users and stories */}
+      {storyModalOpen && (
+        <StoryModal
+          allStories={userStories}
+          initialUserIndex={currentUserStoryIndex}
+          onClose={handleCloseStory}
+        />
+      )}
+
+      {/* Comment Modal */}
+      {activeCommentPostId && (
+        <CommentModal
+          post={posts.find((p) => p.id.toString() === activeCommentPostId)}
+          commentText={commentText}
+          onCommentChange={handleCommentChange}
+          onCommentSubmit={() => handleCommentSubmit(activeCommentPostId)}
+          onClose={() => setActiveCommentPostId(null)}
+          currentUser={currentUser}
+        />
+      )}
+
+      {/* Likes Modal */}
+      {showLikesModal && (
+        <LikesModal
+          likesData={{ [showLikesModal]: likesData[showLikesModal] || [] }}
+          postId={showLikesModal}
+          onClose={() => setShowLikesModal(null)}
+          onNavigateToProfile={handleNavigateToProfile}
+        />
+      )}
+
+      {/* Report Modal */}
+      {showReportModal && (
+        <ReportModal
+          onClose={() => setShowReportModal(false)}
+          onReport={handleReport}
+        />
+      )}
+    </div>
+  );
 };
 
 export default CenterContent;

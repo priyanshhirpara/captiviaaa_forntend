@@ -1,7 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 
-const ReportModal = ({ onClose, onReport }) => {
-    const [selectedReason, setSelectedReason] = useState(null);
+const ReportModal = ({ onClose, onReport }: { onClose: () => void, onReport: (reason: string) => void }) => {
 
     const reportReasons = [
         "I just don't like it",
@@ -14,15 +13,13 @@ const ReportModal = ({ onClose, onReport }) => {
         "False information"
     ];
 
-    const handleReasonSelect = (reason) => {
-        setSelectedReason(reason);
-        // You can add additional logic here if needed
+    const handleReasonSelect = (reason: string) => {
         onReport(reason);
         onClose();
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-[9999] flex items-center justify-center">
+        <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm z-[9999] flex items-center justify-center">
             <div className="bg-white dark:bg-[#262626] rounded-lg max-w-md w-full mx-4 max-h-[80vh] overflow-hidden z-10">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">

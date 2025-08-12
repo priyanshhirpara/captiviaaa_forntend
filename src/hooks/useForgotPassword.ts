@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { apiClient, API_ENDPOINTS, isAuthenticated, handleError } from './apiClient';
+import axios from 'axios';
+import Cookies from 'js-cookie';
+
 
 // Types
 export interface UseForgotPasswordReturn {
@@ -23,19 +25,21 @@ export interface UseForgotPasswordReturn {
   handleResetPassword: (token: string) => Promise<void>;
 }
 
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
+const accessToken = Cookies.get('access_token');
 
 // API functions
 const sendForgotPasswordEmail = async (email: string): Promise<any> => {
-  const response = await apiClient.post('/forgot-password/', { email });
+  const response = await axios.post(`${API_BASE_URL}/forgot-password/`, { email });
   return response.data;
 };
 
-const resetPassword = async (token: string, password: string): Promise<any> => {
-  const response = await apiClient.post('/reset-password/', 
+const resetPassword = async (password: string): Promise<any> => {
+  const response = await axios.post(`${API_BASE_URL}/reset-password/`, 
     { password },
     {
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     }
   );
@@ -62,34 +66,34 @@ export const useForgotPassword = (): UseForgotPasswordReturn => {
     setMessage('');
 
     try {
-      const data = await sendForgotPasswordEmail(input);
+      await sendForgotPasswordEmail(input);
       
       setEmailSent(true);
       setMessage('A password reset link has been sent to your email!');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending email:', error);
-      const errorMessage = handleError(error);
-      setMessage(errorMessage || 'Something went wrong. Please try again.');
+      const errorMessage = error.response?.data?.message || 'Something went wrong. Please try again.';
+      setMessage(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleResetPassword = async (token: string): Promise<void> => {
+  const handleResetPassword = async (): Promise<void> => {
     if (newPassword !== confirmPassword) {
       setMessage("Passwords do not match!");
       return;
     }
 
     try {
-      await resetPassword(token, newPassword);
+      await resetPassword(newPassword);
       
       setSuccessMessage("Password reset successful! Please log in.");
       setMessage("");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error:", error);
-      const errorMessage = handleError(error);
-      setMessage(errorMessage || "Something went wrong. Please try again.");
+      const errorMessage = error.response?.data?.message || "Something went wrong. Please try again.";
+      setMessage(errorMessage);
     }
   };
 

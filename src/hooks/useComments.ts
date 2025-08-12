@@ -1,48 +1,30 @@
 import { useState, useCallback } from 'react';
-import { apiClient, API_ENDPOINTS, isAuthenticated, handleError } from './apiClient';
+import axios from 'axios';
+import Cookies from 'js-cookie';
+import type { Comment, UseCommentsReturn, CurrentUser } from '../types/posttypes';
 
-// Types
-export interface Comment {
-  id: string;
-  text: string;
-  username: string;
-  user_profile_picture: string;
-  timestamp: string;
-}
-
-export interface User {
-  id: number;
-  username: string;
-  fullname: string;
-  email?: string;
-  mobile_number?: string;
-  profile_picture?: string;
-  bio?: string;
-  website?: string;
-}
-
-export interface UseCommentsReturn {
-  commentText: string;
-  activeCommentPostId: string | null;
-  setActiveCommentPostId: (postId: string | null) => void;
-  handleCommentChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleCommentSubmit: (postId: string) => Promise<Comment | null>;
-}
 
 // Constants
 const ERROR_MESSAGES = {
   NO_ACCESS_TOKEN: 'No access token found. Please log in.',
 };
 
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
+
 // API functions
-const addComment = async (postId: string, commentText: string): Promise<any> => {
-  const response = await apiClient.post(`/posts/${postId}/comments/`, {
-    text: commentText,
+const addComment = async (postId: string, commentText: string): Promise<{ id: string }> => {
+  const token = Cookies.get('access_token');
+  const response = await axios.post(`${API_BASE_URL}/post/${postId}/comment/`, {
+    content: commentText,
+  }, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
-  return response.data as any;
+  return response.data as { id: string };
 };
 
-export const useComments = (currentUser?: User): UseCommentsReturn => {
+export const useComments = (currentUser?: CurrentUser): UseCommentsReturn => {
   const [commentText, setCommentText] = useState<string>('');
   const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null);
 
@@ -55,7 +37,8 @@ export const useComments = (currentUser?: User): UseCommentsReturn => {
       return null;
     }
 
-    if (!isAuthenticated()) {
+    const token = Cookies.get('access_token');
+    if (!token) {
       console.error(ERROR_MESSAGES.NO_ACCESS_TOKEN);
       return null;
     }
@@ -65,20 +48,65 @@ export const useComments = (currentUser?: User): UseCommentsReturn => {
 
       const commentWithUserInfo: Comment = {
         ...newComment,
+        text: commentText.trim(),
         username: currentUser?.username || 'Anonymous',
-        user_profile_picture: currentUser?.profile_picture || 'https://via.placeholder.com/30',
-        timestamp: new Date().toISOString(),
+        user_profile_picture: currentUser?.personal_information?.profile_picture || 'https://via.placeholder.com/30',
+        created_at: new Date().toISOString(),
       };
 
       setCommentText('');
       return commentWithUserInfo;
     } catch (error) {
       console.error('Error posting comment:', error);
-      const errorMessage = handleError(error);
-      console.error(errorMessage);
       return null;
     }
   }, [commentText, currentUser]);
+
+  // New function to post comments with explicit user info
+  const postComment = useCallback(async (
+    postId: string,
+    commentText: string,
+    username: string,
+    profilePicture: string
+  ): Promise<Comment | null> => {
+    if (!commentText.trim()) {
+      return null;
+    }
+
+    const token = Cookies.get('access_token');
+    if (!token) {
+      console.error(ERROR_MESSAGES.NO_ACCESS_TOKEN);
+      return null;
+    }
+
+    try {
+      const newCommentData = await addComment(postId, commentText.trim());
+
+      // Create the new comment with user info
+      const newComment: Comment = {
+        id: newCommentData.id || Date.now().toString(),
+        username: username,
+        user_profile_picture: profilePicture,
+        text: commentText.trim(),
+        created_at: new Date().toISOString(),
+      };
+
+      return newComment;
+    } catch (error) {
+      console.error('Error posting comment:', error);
+
+      // Return a temporary comment for optimistic updates
+      const tempComment: Comment = {
+        id: Date.now().toString(),
+        username: username,
+        user_profile_picture: profilePicture,
+        text: commentText.trim(),
+        created_at: new Date().toISOString(),
+      };
+
+      return tempComment;
+    }
+  }, []);
 
   return {
     commentText,
@@ -86,5 +114,6 @@ export const useComments = (currentUser?: User): UseCommentsReturn => {
     setActiveCommentPostId,
     handleCommentChange,
     handleCommentSubmit,
+    postComment,
   };
 };

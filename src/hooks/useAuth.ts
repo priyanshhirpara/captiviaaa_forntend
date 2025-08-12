@@ -1,51 +1,21 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import type { User, LoginData, SignupData, PersonalInfoData } from '../types/userTypes';
+import type { CurrentUser } from '../types/posttypes';
 
-// Types
-export interface User {
-  id: number;
-  username: string;
-  fullname: string;
-  email?: string;
-  mobile_number?: string;
-  profile_picture?: string;
-  bio?: string;
-  website?: string;
-}
 
-export interface LoginData {
-  email?: string;
-  mobile_number?: string;
-  username?: string;
-  password: string;
-}
-
-export interface SignupData {
-  username: string;
-  fullname: string;
-  password: string;
-  email?: string;
-  mobile_number?: string;
-}
-
-export interface PersonalInfoData {
-  profile_picture: string;
-  bio: string;
-  website: string;
-}
-
-import { apiClient, API_ENDPOINTS, isAuthenticated, handleError } from './apiClient';
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
 export const useAuth = () => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch current user data
   const fetchCurrentUser = async () => {
-    const token = Cookies.get('access_token');
-    if (!token) {
+    const accessToken = Cookies.get("access_token");
+    if (!accessToken) {
       setCurrentUser(null);
       return;
     }
@@ -53,9 +23,13 @@ export const useAuth = () => {
     try {
       setIsLoading(true);
       setError(null);
-      
-      const response = await apiClient.get('/me');
-      setCurrentUser(response.data as User);
+
+      const response = await axios.get(`${API_BASE_URL}/me`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      setCurrentUser(response.data as CurrentUser);
     } catch (err: any) {
       console.error('Error fetching user data:', err);
       setError(err.response?.data?.message || 'Failed to fetch user data');
@@ -71,18 +45,18 @@ export const useAuth = () => {
       setIsLoading(true);
       setError(null);
 
-      const response = await apiClient.post('/login', loginData);
-      
+      const response = await axios.post(`${API_BASE_URL}/login`, loginData);
+
       if (response.status === 200) {
         const { token } = response.data as { token: string };
         Cookies.set('access_token', token, { expires: 3 });
         localStorage.setItem('loginData', JSON.stringify(loginData));
-        
+
         // Fetch user data after successful login
         await fetchCurrentUser();
         return true;
       }
-      
+
       return false;
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Login failed. Please try again.';
@@ -99,17 +73,17 @@ export const useAuth = () => {
       setIsLoading(true);
       setError(null);
 
-      const response = await apiClient.post('/signup', signupData);
-      
+      const response = await axios.post(`${API_BASE_URL}/signup`, signupData);
+
       if (response.status === 200 || response.status === 201) {
         const { token } = response.data as { token: string };
         Cookies.set('access_token', token, { expires: 3 });
-        
+
         // Fetch user data after successful signup
         await fetchCurrentUser();
         return true;
       }
-      
+
       return false;
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Signup failed. Please try again.';
@@ -126,14 +100,19 @@ export const useAuth = () => {
       setIsLoading(true);
       setError(null);
 
-      const response = await apiClient.post('/personal-information/', personalInfoData);
-      
+      const token = Cookies.get('access_token');
+      const response = await axios.post(`${API_BASE_URL}/personal-information/`, personalInfoData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       if (response.status === 200 || response.status === 201) {
         // Update current user with new personal info
         await fetchCurrentUser();
         return true;
       }
-      
+
       return false;
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Failed to save personal information.';
@@ -153,7 +132,7 @@ export const useAuth = () => {
   };
 
   // Check if user is authenticated
-  const isAuthenticated = (): boolean => {
+  const checkAuth = (): boolean => {
     return !!Cookies.get('access_token');
   };
 
@@ -164,7 +143,12 @@ export const useAuth = () => {
     }
 
     try {
-      const response = await apiClient.get(`/username-suggestions/?base_name=${baseName}`);
+      const token = Cookies.get('access_token');
+      const response = await axios.get(`${API_BASE_URL}/username-suggestions/?base_name=${baseName}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       return (response.data as { suggestions: string[] }).suggestions || [];
     } catch (err: any) {
       console.error('Error fetching username suggestions:', err);
@@ -185,7 +169,7 @@ export const useAuth = () => {
     signup,
     createPersonalInfo,
     logout,
-    isAuthenticated,
+    checkAuth,
     getUsernameSuggestions,
     fetchCurrentUser,
   };

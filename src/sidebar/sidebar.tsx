@@ -174,7 +174,7 @@ const Sidebar = () => {
     };
 
     const menuItems = [
-        { icon: <FaHome className="w-9 h-9 my-2" />, label: "Home", path: "/homepage" },
+        { icon: <FaHome className="w-9 h-9 my-2" />, label: "Home", path: "/home" },
         { icon: <FaSearch className="w-9 h-9 my-2" />, label: "Search", action: () => handleSearchClick() },
         { icon: <Compass className="w-9 h-9 my-2" />, label: "Explore", path: "/explore" },
         // { icon: <FaVideo className="w-9 h-9 my-2" />, label: "Reels", path: "/reels" },
@@ -185,9 +185,9 @@ const Sidebar = () => {
         { icon: <MdOutlineMoreVert className="w-9 h-9 my-2 mx-auto" />, label: "More", action: () => handleMoreClick() },
     ];
 
-    const handleNavigation = (item: any) => navigate(item.path || "/homepage");
+    const handleNavigation = (item: any) => navigate(item.path || "/home");
 
-    const handleInstagramClick = () => navigate("/homepage");
+    const handleInstagramClick = () => navigate("/home");
 
     const handleSearchClick = () => {
         setShowInstagramText(false);
