@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
@@ -16,10 +16,10 @@ export interface UseFollowUnfollowReturn {
 }
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
-const accessToken = Cookies.get('access_token');
 
 // API functions
 const followUserAPI = async (userId: string): Promise<void> => {
+  const accessToken = Cookies.get('access_token');
   await axios.post(`${API_BASE_URL}/follow/?user_id=${userId}`, {}, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -28,6 +28,7 @@ const followUserAPI = async (userId: string): Promise<void> => {
 };
 
 const unfollowUserAPI = async (userId: string): Promise<void> => {
+  const accessToken = Cookies.get('access_token');
   await axios.delete(`${API_BASE_URL}/unfollow/?user_id=${userId}`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -39,12 +40,24 @@ export const useFollowUnfollow = (): UseFollowUnfollowReturn => {
   const [isFollowing, setIsFollowing] = useState<Record<string, boolean>>({});
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
+  
+  // Use refs to prevent excessive API calls
+  const hasFetchedRef = useRef(false);
+  const isFetchingRef = useRef(false);
 
   const fetchFollowerCounts = useCallback(async (): Promise<void> => {
+    // Prevent duplicate calls
+    if (hasFetchedRef.current || isFetchingRef.current) {
+      return;
+    }
+    
+    const accessToken = Cookies.get('access_token');
     if (!accessToken) {
       console.error('No access token found. Please log in.');
       return;
     }
+
+    isFetchingRef.current = true;
 
     try {
       // Fetch followers count
@@ -66,8 +79,12 @@ export const useFollowUnfollow = (): UseFollowUnfollowReturn => {
       if (followingResponse.data && Array.isArray(followingResponse.data)) {
         setFollowingCount(followingResponse.data.length);
       }
+      
+      hasFetchedRef.current = true;
     } catch (error) {
       console.error('Error fetching follower counts:', error);
+    } finally {
+      isFetchingRef.current = false;
     }
   }, []);
 
@@ -80,6 +97,7 @@ export const useFollowUnfollow = (): UseFollowUnfollowReturn => {
   }, []);
 
   const followUser = useCallback(async (userId: string): Promise<boolean> => {
+    const accessToken = Cookies.get('access_token');
     if (!accessToken) {
       console.error('No access token found. Please log in.');
       return false;
@@ -105,6 +123,7 @@ export const useFollowUnfollow = (): UseFollowUnfollowReturn => {
   }, [updateFollowerCounts]);
 
   const unfollowUser = useCallback(async (userId: string): Promise<boolean> => {
+    const accessToken = Cookies.get('access_token');
     if (!accessToken) {
       console.error('No access token found. Please log in.');
       return false;

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import Cookies from 'js-cookie';
 import axios from 'axios';
 import type { LikeUser, UseLikeReturn } from '../types/likeTypes';
@@ -13,7 +13,6 @@ const ERROR_MESSAGES = {
 };
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
-const accessToken = Cookies.get('access_token');
 
 export const useLike = (
     postId: string,
@@ -29,19 +28,24 @@ export const useLike = (
     const [likedByUsers, setLikedByUsers] = useState<LikeUser[]>([]);
     const [loadingLikedBy, setLoadingLikedBy] = useState(false);
     const [showLikedBy, setShowLikedBy] = useState(false);
+    
+    // Use refs to prevent stale closures and excessive API calls
+    const hasFetchedRef = useRef(false);
+    const isMountedRef = useRef(true);
 
     // Fetch users who liked the post
     const fetchLikedByUsers = useCallback(async () => {
-        if (!postId) {
-            console.error(ERROR_MESSAGES.POST_NOT_AVAILABLE);
+        if (!postId || hasFetchedRef.current || !isMountedRef.current) {
             return;
         }
-        if (!accessToken) {
+        
+        if (!Cookies.get('access_token')) {
             console.error(ERROR_MESSAGES.NO_ACCESS_TOKEN);
             return;
         }
 
         setLoadingLikedBy(true);
+        hasFetchedRef.current = true;
 
         try {
             const response = await axios.get(
@@ -49,7 +53,7 @@ export const useLike = (
                 {
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization: `Bearer ${accessToken}`,
+                        Authorization: `Bearer ${Cookies.get('access_token')}`,
                     },
                 }
             );
@@ -57,6 +61,8 @@ export const useLike = (
             if (response.status !== 200) {
                 throw new Error(ERROR_MESSAGES.FETCH_LIKED_FAILED);
             }
+
+            if (!isMountedRef.current) return;
 
             const data = response.data as LikeUser[];
             setLikedByUsers(data);
@@ -76,9 +82,11 @@ export const useLike = (
         } catch (error) {
             console.error("Error fetching liked by users:", error);
         } finally {
-            setLoadingLikedBy(false);
+            if (isMountedRef.current) {
+                setLoadingLikedBy(false);
+            }
         }
-    }, [postId, currentUserId, isLiked, API_BASE_URL]);
+    }, [postId, currentUserId, isLiked]);
 
     // Handle like/unlike functionality
     const handleLikeToggle = useCallback(async () => {
@@ -118,25 +126,31 @@ export const useLike = (
             savedLikes[postId] = newLikeStatus;
             localStorage.setItem('likedPosts', JSON.stringify(savedLikes));
 
-            // Fetch updated likes data
-            await fetchLikedByUsers();
+            // Reset fetch flag to allow refetching if needed
+            hasFetchedRef.current = false;
         } catch (error) {
             console.error("Error updating like status:", error);
         }
-    }, [isLiked, likesCount, postId, API_BASE_URL, fetchLikedByUsers]);
+    }, [isLiked, likesCount, postId]);
 
     // Toggle liked by modal
     const toggleLikedBy = useCallback(() => {
-        if (!showLikedBy && likesCount > 0) {
+        if (!showLikedBy && likesCount > 0 && !hasFetchedRef.current) {
             fetchLikedByUsers();
         }
         setShowLikedBy(!showLikedBy);
     }, [showLikedBy, likesCount, fetchLikedByUsers]);
 
-    // Fetch liked users when component mounts
+    // Fetch liked users only when component mounts and hasn't fetched yet
     useEffect(() => {
-        fetchLikedByUsers();
-    }, [fetchLikedByUsers]);
+        if (!hasFetchedRef.current) {
+            fetchLikedByUsers();
+        }
+        
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []); // Empty dependency array - only run once on mount
 
     return {
         isLiked,

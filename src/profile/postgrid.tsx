@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, memo } from "react";
 import PostDetail from "./postdetail";
 import { Heart, MessageCircle } from "lucide-react";
 import { useLike } from "../hooks/useLike";
-import type { Post } from "../hooks/usePosts";
+import type { Post } from "../types/posttypes";
 
 interface PostGridProps {
   posts: Post[];
@@ -25,7 +25,7 @@ const PostGrid = ({ posts, API_BASE_URL }: PostGridProps) => {
   };
 
   const handleMouseEnter = (post: Post) => {
-    setHoveredPost(post.id);
+    setHoveredPost(typeof post.id === 'number' ? post.id : null);
   };
 
   const handleMouseLeave = () => {
@@ -41,7 +41,6 @@ const PostGrid = ({ posts, API_BASE_URL }: PostGridProps) => {
             key={post.id}
             post={post}
             currentUserId={currentUserId}
-            API_BASE_URL={API_BASE_URL}
             hoveredPost={hoveredPost}
             onPostClick={handlePostClick}
             onMouseEnter={handleMouseEnter}
@@ -65,17 +64,15 @@ const PostGrid = ({ posts, API_BASE_URL }: PostGridProps) => {
 interface PostGridItemProps {
   post: Post;
   currentUserId: string | undefined;
-  API_BASE_URL: string;
   hoveredPost: number | null;
   onPostClick: (post: Post) => void;
   onMouseEnter: (post: Post) => void;
   onMouseLeave: () => void;
 }
 
-const PostGridItem = ({
+const PostGridItem = memo(({
   post,
   currentUserId,
-  API_BASE_URL,
   hoveredPost,
   onPostClick,
   onMouseEnter,
@@ -84,7 +81,6 @@ const PostGridItem = ({
   const { isLiked, likesCount, handleLikeToggle, loadingLikedBy } = useLike(
     post.id.toString(),
     currentUserId,
-    API_BASE_URL,
     post.likes || 0
   );
 
@@ -158,6 +154,8 @@ const PostGridItem = ({
       )}
     </div>
   );
-};
+});
+
+PostGridItem.displayName = 'PostGridItem';
 
 export default PostGrid;

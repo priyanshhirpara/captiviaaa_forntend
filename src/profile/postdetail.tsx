@@ -34,7 +34,7 @@ const PostDetail = ({
     handleLikeToggle,
     fetchLikedByUsers,
     toggleLikedBy,
-  } = useLike(post.id, currentUser?.id, API_BASE_URL, post.likes);
+  } = useLike(post.id.toString(), currentUser?.id, API_BASE_URL, post.likes);
 
   // Handle comment submission
   const handleCommentSubmitWrapper = async () => {
@@ -46,7 +46,7 @@ const PostDetail = ({
       "/images/default.jpg";
 
     const newComment = await postComment(
-      post.id,
+      post.id.toString(),
       commentText.trim(),
       username,
       profilePicture

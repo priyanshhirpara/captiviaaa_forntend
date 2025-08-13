@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from '../sidebar/sidebar';
 import { useAuth } from "../hooks/useAuth";
 import { useFollowUnfollow } from "../hooks/useFollowUnfollow";
-import { usePosts } from "../hooks/usePosts";
+import { useUserPosts } from "../hooks/usePosts";
 import PostGrid from "../profile/postgrid";
 import { CiSettings } from "react-icons/ci";
 import { Home, Compass, Video, PlusSquare, MessageCircle, User, Settings, Grid, Bookmark, Tag } from "lucide-react";
@@ -12,7 +12,7 @@ const ProfilePage = () => {
     
     const { currentUser } = useAuth();
     const { followersCount, followingCount, fetchFollowerCounts } = useFollowUnfollow();
-    const { posts, isLoading, hasMore, fetchUserPosts } = usePosts(9);
+    const { userPosts, userPostsLoading, userPostsHasMore, fetchUserPosts, fetchMoreUserPosts } = useUserPosts();
     const navigate = useNavigate();
 
     // Fetch user posts and follower/following counts on component mount
@@ -56,7 +56,7 @@ const ProfilePage = () => {
                         <div className="flex items-center space-x-6">
                             <img
                                 className="w-44 h-44 rounded-full border-2 border-gray-300 dark:border-gray-700 mt-16"
-                                src={currentUser?.profile_picture || "/images/default.jpg"}
+                                src={currentUser?.personal_information?.profile_picture || "/images/default.jpg"}
                                 alt="Profile"
                             />
                             <div className="flex flex-col">
@@ -76,7 +76,7 @@ const ProfilePage = () => {
                                     </button>
                                 </div>
                                 <div className="text-start flex w-full mt-6 text-sm font-bold">
-                                    <h4 className="mr-1">{posts.length || 0}</h4>
+                                    <h4 className="mr-1">{userPosts.length || 0}</h4>
                                     <p className="text-gray-500 dark:text-gray-400 mr-6">posts</p>
                                     
                                     <button 
@@ -96,17 +96,17 @@ const ProfilePage = () => {
                                     </button>
                                 </div>
                                 <h4 className="text-sm font-bold text-start mr-44">{currentUser?.fullname}</h4>
-                                {currentUser?.bio && (
+                                {currentUser?.personal_information?.bio && (
                                     <div className="text-start mt-2 items-start">
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">{currentUser.bio}</p>
-                                        {currentUser.website && (
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">{currentUser.personal_information.bio}</p>
+                                        {currentUser?.personal_information?.website && (
                                             <a
-                                                href={currentUser.website}
+                                                href={currentUser.personal_information.website}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="text-sm text-blue-500 dark:text-blue-400 underline"
                                             >
-                                                {currentUser.website}
+                                                {currentUser.personal_information.website}
                                             </a>
                                         )}
                                     </div>
@@ -134,13 +134,13 @@ const ProfilePage = () => {
 
                 {/* Posts Section */}
                 <div className="mt-8">
-                    {isLoading && posts.length === 0 ? (
+                    {userPostsLoading && userPosts.length === 0 ? (
                         <div className="flex justify-center">
                             <p>Loading posts...</p>
                         </div>
-                    ) : posts.length > 0 ? (
+                    ) : userPosts.length > 0 ? (
                         <PostGrid
-                            posts={posts}
+                            posts={userPosts}
                             API_BASE_URL={import.meta.env.VITE_BACKEND_URL}
                         />
                     ) : (
@@ -149,14 +149,14 @@ const ProfilePage = () => {
                         </div>
                     )}
 
-                    {hasMore && posts.length > 0 && (
+                    {userPostsHasMore && userPosts.length > 0 && (
                         <div className="flex justify-center mt-4 mb-8">
                             <button
                                 onClick={() => fetchUserPosts(false)}
-                                disabled={isLoading}
+                                disabled={userPostsLoading}
                                 className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md dark:bg-gray-700 dark:text-gray-300"
                             >
-                                {isLoading ? "Loading..." : "Load More"}
+                                {userPostsLoading ? "Loading..." : "Load More"}
                             </button>
                         </div>
                     )}

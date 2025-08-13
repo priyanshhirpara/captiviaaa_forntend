@@ -266,3 +266,111 @@ export const usePosts = (): UsePostsReturn => {
     fetchLikesData
   };
 };
+
+// Hook specifically for user profile posts
+export const useUserPosts = () => {
+  const [userPosts, setUserPosts] = useState<Post[]>([]);
+  const [userPostsLoading, setUserPostsLoading] = useState(false);
+  const [userPostsHasMore, setUserPostsHasMore] = useState(true);
+  const [userPostsSkip, setUserPostsSkip] = useState(0);
+  const [userPostsLimit] = useState(10);
+  
+  // Use refs to prevent excessive API calls
+  const hasInitialFetchRef = useRef(false);
+  const isFetchingRef = useRef(false);
+
+  const fetchUserPosts = useCallback(async (reset = false) => {
+    // Prevent duplicate calls
+    if (isFetchingRef.current) return;
+    
+    // Only allow initial fetch once
+    if (reset && hasInitialFetchRef.current) return;
+    
+    setUserPostsLoading(true);
+    isFetchingRef.current = true;
+
+    const accessToken = Cookies.get("access_token");
+    if (!accessToken) {
+      console.error("No access token found. Please log in.");
+      setUserPostsLoading(false);
+      isFetchingRef.current = false;
+      return;
+    }
+
+    try {
+      const currentSkip = reset ? 0 : userPostsSkip;
+      console.log(`Fetching user posts: skip=${currentSkip}, limit=${userPostsLimit}`);
+
+      const response = await axios.get<ApiPostData[]>(`${API_BASE_URL}/user-posts/?skip=${currentSkip}&limit=${userPostsLimit}`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (response.status !== 200) {
+        throw new Error("Failed to fetch user posts");
+      }
+
+      const apiData = response.data;
+      console.log(`Received ${apiData.length} user posts from API`);
+
+      const transformedPosts: Post[] = apiData.map((post: ApiPostData) => ({
+        id: post.id,
+        username: post.username,
+        image_url: post.image_url,
+        time: new Date().toLocaleTimeString(),
+        location: post.location || "",
+        saves: post.saves || 0,
+        comments: (post.comments || []).map(comment => ({
+          id: comment.id,
+          text: comment.text,
+          username: comment.username,
+          user_profile_picture: comment.user_profile_picture,
+          created_at: comment.created_at,
+        })),
+        user_profile_picture: post.user_profile_picture,
+        caption: post.caption || "",
+        created_by: post.created_by || "",
+        post_type: post.post_type || "image",
+        created_at: post.created_at ? new Date(post.created_at).getTime() : Date.now(),
+        likes: post.likes || 0,
+      }));
+
+      setUserPosts(prev => reset ? transformedPosts : [...prev, ...transformedPosts]);
+      setUserPostsHasMore(apiData.length === userPostsLimit);
+
+      if (!reset) {
+        setUserPostsSkip(prev => prev + userPostsLimit);
+      } else {
+        setUserPostsSkip(userPostsLimit);
+        hasInitialFetchRef.current = true;
+      }
+    } catch (error) {
+      console.error("Error fetching user posts:", error);
+    } finally {
+      setUserPostsLoading(false);
+      isFetchingRef.current = false;
+    }
+  }, [userPostsLimit, userPostsSkip]);
+
+  const fetchMoreUserPosts = useCallback(() => {
+    fetchUserPosts(false);
+  }, [fetchUserPosts]);
+
+  useEffect(() => {
+    // Only fetch once on mount
+    if (!hasInitialFetchRef.current) {
+      fetchUserPosts(true);
+    }
+  }, []); // Empty dependency array - only run once on mount
+
+  return {
+    userPosts,
+    userPostsLoading,
+    userPostsHasMore,
+    fetchUserPosts,
+    fetchMoreUserPosts,
+  };
+};
+
